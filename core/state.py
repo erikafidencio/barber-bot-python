@@ -28,6 +28,42 @@ async def step_handler(chat_id, nlp):
         state["step"] = "ASK_TIME"
         save_user_state(chat_id, state)
         return "Beleza! E qual horário precisa?"
+from db.database import get_user_state, save_user_state
+from core.scheduler import is_available, save_appointment
+
+async def step_handler(chat_id, nlp):
+    state = get_user_state(chat_id)
+
+    # Primeiro contato
+    if state is None:
+        state = {"step": "ASK_SERVICE", "chat_id": chat_id}
+        save_user_state(chat_id, state)
+        return "Olá! Qual serviço deseja? Corte, barba ou sobrancelha?"
+
+    step = state["step"]
+
+    # 1 — Perguntar serviço
+    if step == "ASK_SERVICE":
+        if not nlp["service"]:
+            return "Qual serviço deseja? Corte, barba ou sobrancelha?"
+        
+        state["service"] = nlp["service"]
+        state["step"] = "ASK_DATE"
+        state["chat_id"] = chat_id  # garantir persistência
+        save_user_state(chat_id, state)
+
+        return f"Perfeito! Para qual dia deseja marcar {nlp['service']}?"
+
+    # 2 — Perguntar data
+    if step == "ASK_DATE":
+        if not nlp["date"]:
+            return "Qual dia você gostaria? Pode falar 'sábado' ou 'amanhã'."
+
+        state["date"] = nlp["date"]
+        state["step"] = "ASK_TIME"
+        save_user_state(chat_id, state)
+
+        return "Beleza! E qual horário precisa?"
 
     # 3 — Perguntar horário
     if step == "ASK_TIME":
@@ -41,7 +77,7 @@ async def step_handler(chat_id, nlp):
             return "Esse horário não está disponível. Tente outro."
 
         save_appointment(state)
-        save_user_state(chat_id, None)
+        save_user_state(chat_id, None)  # limpar estado
 
         return f"Agendado! {state['service']} no dia {state['date']} às {state['time']}."
 

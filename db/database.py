@@ -32,7 +32,7 @@ def save_user_state(chat_id, state):
     else:
         cur.execute("""
             INSERT INTO user_state (chat_id, state)
-            VALUES (%s, %s)
+            VALUES (%s, %s::jsonb)
             ON CONFLICT (chat_id)
             DO UPDATE SET state = EXCLUDED.state
         """, (chat_id, json.dumps(state)))
