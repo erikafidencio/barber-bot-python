@@ -1,8 +1,23 @@
 import os
 import psycopg2
 import json
+from urllib.parse import urlparse
 
-conn = psycopg2.connect(os.getenv("DATABASE_URL"), sslmode="require")
+# Railway DATABASE_URL
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Parse da URL
+url = urlparse(DATABASE_URL)
+
+# Conexão com SSL obrigatório
+conn = psycopg2.connect(
+    database=url.path[1:],
+    user=url.username,
+    password=url.password,
+    host=url.hostname,
+    port=url.port,
+    sslmode="require"
+)
 
 def get_user_state(chat_id):
     cur = conn.cursor()
@@ -20,19 +35,5 @@ def save_user_state(chat_id, state):
             VALUES (%s, %s)
             ON CONFLICT (chat_id)
             DO UPDATE SET state = EXCLUDED.state
-        """, (chat_id, json.dumps(state)))
-    conn.commit()
-
-def save_appointment_db(state):
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO appointments (chat_id, service, date, time)
-        VALUES (%s, %s, %s, %s)
-    """, (
-        state.get("chat_id", 0),
-        state["service"],
-        state["date"],
-        state["time"]
-    ))
-    conn.commit()
+        """, (chat_id, json.dum_
 
